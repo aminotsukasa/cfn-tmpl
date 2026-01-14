@@ -1,0 +1,294 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+#
+# このテンプレートはVPCとサブネットを4(pri * pub * 2)作成し、
+# プライベートサブネットとパブリックサブネット用のルートを作成し
+# 動作確認用のEC2(phpとapache入り)を作成します。
+# IGWとルートテーブルも作成します
+#
+Description: Create AWS CloudFor1ation Customize Virtual Private Cloud
+Parameters:
+  Availabilityzone1:
+    Description: " AZ-1 "
+    Type: String
+    MinLength: '0'
+    MaxLength: '18'
+    Default: 'us-east-1a'
+  Availabilityzone2:
+    Description: " AZ-2 "
+    Type: String
+    MinLength: '0'
+    MaxLength: '18'
+    Default: 'us-east-1b'
+  Ec2ImageId:
+    Type: AWS::SSM::Parameter::Value<String>
+    Default: /aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2
+  VpcName:
+    Description: Please input VPC name.
+    Type: String
+    Default: example-vpc
+    AllowedPattern: "[-a-zA-Z0-9]*"
+    ConstraintDescription: ''
+  VpcCidrBlock:
+    Type: String
+    Description: Please input an IP range in VPC.
+    Default: 10.0.0.0/16
+    AllowedPattern: "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/16"
+    ConstraintDescription: ''
+  VpcSubnetNamePublic1a:
+    Description: Please input the subnet name of example-vpc-public-subnet-1a.
+    Type: String
+    Default: example-vpc-public-subnet-1a
+    AllowedPattern: "[-a-zA-Z0-9]*"
+    ConstraintDescription: ''
+  VpcSubnetCidrBlockPublic1a:
+    Type: String
+    Description: Please input an IP range in example-vpc-public-subnet-1a.
+    Default: 10.0.3.0/24
+    AllowedPattern: "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/24"
+    ConstraintDescription: ''
+  VpcSubnetNamePublic1c:
+    Description: Please input the subnet name of example-vpc-public-subnet-1c.
+    Type: String
+    Default: example-vpc-public-subnet-1c
+    AllowedPattern: "[-a-zA-Z0-9]*"
+    ConstraintDescription: ''
+  VpcSubnetCidrBlockPublic1c:
+    Type: String
+    Description: Please input an IP range in example-vpc-public-subnet-1c.
+    Default: 10.0.4.0/24
+    AllowedPattern: "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/24"
+    ConstraintDescription: ''
+  VpcSubnetNamePrivate1a:
+    Description: Please input the subnet name of example-vpc-private-subnet-1a.
+    Type: String
+    Default: example-vpc-private-subnet-1a
+    AllowedPattern: "[-a-zA-Z0-9]*"
+    ConstraintDescription: ''
+  VpcSubnetCidrBlockPrivate1a:
+    Type: String
+    Description: Please input an IP range in example-vpc-private-subnet-1a.
+    Default: 10.0.1.0/24
+    AllowedPattern: "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/24"
+    ConstraintDescription: ''
+  VpcSubnetNamePrivate1c:
+    Description: Please input the subnet name of private-subnet-1c.
+    Type: String
+    Default: example-vpc-private-subnet-1c
+    AllowedPattern: "[-a-zA-Z0-9]*"
+    ConstraintDescription: ''
+  VpcSubnetCidrBlockPrivate1c:
+    Type: String
+    Description: Please input an IP range in example-vpc-private-subnet-1c.
+    Default: 10.0.2.0/24
+    AllowedPattern: "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/24"
+    ConstraintDescription: ''
+  InternetGatewayName:
+    Description: Please input the name of Internet Gateway.
+    Type: String
+    Default: example-vpc-igw
+    AllowedPattern: "[-a-zA-Z0-9]*"
+    ConstraintDescription: ''
+  SSHLocation:
+    Description: " The IP address range that can be used to SSH to the EC2 instances"
+    Type: String
+    MinLength: '9'
+    MaxLength: '18'
+    Default: 10.0.0.0/16
+    AllowedPattern: "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})"
+    ConstraintDescription: must be a valid IP CIDR range of the form x.x.x.x/x.
+Mappings: {}
+Resources:
+  SubnetPublic1a:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId:
+        Ref: VPC
+      AvailabilityZone:
+        Ref: Availabilityzone1
+      CidrBlock:
+        Ref: VpcSubnetCidrBlockPublic1a
+      MapPublicIpOnLaunch: true
+      Tags:
+      - Key: Name
+        Value:
+          Ref: VpcSubnetNamePublic1a
+  SubnetPublic1c:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId:
+        Ref: VPC
+      AvailabilityZone:
+        Ref: Availabilityzone2
+      CidrBlock:
+        Ref: VpcSubnetCidrBlockPublic1c
+      MapPublicIpOnLaunch: true
+      Tags:
+      - Key: Name
+        Value:
+          Ref: VpcSubnetNamePublic1c
+  SubnetPrivate1a:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId:
+        Ref: VPC
+      AvailabilityZone:
+        Ref: Availabilityzone1
+      CidrBlock:
+        Ref: VpcSubnetCidrBlockPrivate1a
+      MapPublicIpOnLaunch: true
+      Tags:
+      - Key: Name
+        Value:
+          Ref: VpcSubnetNamePrivate1a
+  SubnetPrivate1c:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId:
+        Ref: VPC
+      AvailabilityZone:
+        Ref: Availabilityzone2
+      CidrBlock:
+        Ref: VpcSubnetCidrBlockPrivate1c
+      MapPublicIpOnLaunch: false
+      Tags:
+      - Key: Name
+        Value:
+          Ref: VpcSubnetNamePrivate1c
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+      - Key: Name
+        Value:
+          Ref: InternetGatewayName
+  GatewayToInternet:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId:
+        Ref: VPC
+      InternetGatewayId:
+        Ref: InternetGateway
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId:
+        Ref: VPC
+      Tags:
+      - Key: Application
+        Value:
+          Ref: AWS::StackId
+      - Key: Network
+        Value: Public
+  PublicRoute:
+    Type: AWS::EC2::Route
+    DependsOn: GatewayToInternet
+    Properties:
+      RouteTableId:
+        Ref: PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId:
+        Ref: InternetGateway
+  PublicSubnetRouteTableAssociatio1a:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId:
+        Ref: SubnetPublic1a
+      RouteTableId:
+        Ref: PublicRouteTable
+  PublicSubnetRouteTableAssociation1c:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId:
+        Ref: SubnetPublic1c
+      RouteTableId:
+        Ref: PublicRouteTable
+  PublicNetworkAcl:
+    Type: AWS::EC2::NetworkAcl
+    Properties:
+      VpcId:
+        Ref: VPC
+  InstanceSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId:
+        Ref: VPC
+      GroupDescription: Enable SSH access via port 22
+      SecurityGroupIngress:
+      - IpProtocol: tcp
+        FromPort: '22'
+        ToPort: '22'
+        CidrIp:
+          Ref: SSHLocation
+  EC2InstanceUserdata:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: 
+        Ref: Ec2ImageId
+      SecurityGroupIds:
+      - Ref: InstanceSecurityGroup
+      SubnetId:
+        Ref: SubnetPublic1a
+      InstanceType: t3.large
+      Tags:
+      - Key: Application
+        Value: string
+      - Key: Name
+        Value: example-vpc-server-userdata
+      UserData:
+        Fn::Base64:
+          !Sub |
+            #!/bin/bash
+            yum -y update
+            yum -y install nginx php
+            yum -y install mysql php-mysql
+
+  EC2InstanceCfinit:
+    Type: AWS::EC2::Instance
+    Metadata:
+      AWS::CloudFormation::Init:
+        config:
+          packages:
+            yum:
+              - "php"
+              - "httpd"
+          #groups:
+          #users:
+          #sources:
+          #files:
+          #commands:
+          #services:
+    Properties:
+      ImageId: 
+        Ref: Ec2ImageId
+      SecurityGroupIds:
+      - Ref: InstanceSecurityGroup
+      SubnetId:
+        Ref: SubnetPublic1a
+      InstanceType: t3a.nano
+      Tags:
+      - Key: Application
+        Value: string
+      - Key: Name
+        Value: example-vpc-server-cf-init
+      UserData:
+        Fn::Base64:
+          !Sub |
+            #!/bin/bash
+            echo "start UserData"
+            /opt/aws/bin/cfn-init --stack ${AWS::StackName} --resource EC2Instance --region ${AWS::Region}
+            /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource EC2Instance --region ${AWS::Region}
+            echo "finish UserData"
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock:
+        Ref: VpcCidrBlock
+      EnableDnsSupport: 'true'
+      EnableDnsHostnames: 'true'
+      Tags:
+      - Key: Name
+        Value:
+          Ref: VpcName
+Outputs: {}
+
