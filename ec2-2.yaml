@@ -1,0 +1,21 @@
+Parameters:
+  InstanceTypeParameter:
+    Type: String
+    Default: t4g.nano
+    AllowedValues:
+      - t4g.nano
+      - t4g.micro
+      - t4g.small
+      - t4g.medium
+    Description: Enter Instance Type
+
+
+Resources:
+    EC2Instance:
+        Type: 'AWS::EC2::Instance'
+        Properties:
+            ImageId: ami-07014e28828e4fc07
+            InstanceType: !Ref InstanceTypeParameter
+            Tags:
+              - Key: Name
+                Value: Devops-server
